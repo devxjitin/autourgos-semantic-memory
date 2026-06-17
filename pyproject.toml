@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "autourgos-semantic-memory"
-version = "1.0.0"
+version = "1.0.1"
 description = "TF-IDF keyword retrieval memory for Autourgos agents — KeywordRetriever, KeywordMemory."
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
-    {name = "Jitin Kumar Sengar", email = "autourgoskit@gmail.com"}
+    {name = "Jitin Kumar Sengar", email = "devxjitin@gmail.com"}
 ]
 keywords = ["autourgos", "agent", "memory", "llm"]
 classifiers = [
@@ -26,9 +26,9 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://pypi.org/project/autourgos-semantic-memory/"
-Repository = "https://github.com/jitin-kumar-sengar/autourgos"
-"Bug Tracker" = "https://github.com/jitin-kumar-sengar/autourgos/issues"
+Homepage = "https://github.com/devxjitin/autourgos-semantic-memory"
+Repository = "https://github.com/devxjitin/autourgos-semantic-memory"
+Issues = "https://github.com/devxjitin/autourgos-semantic-memory/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
