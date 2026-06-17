@@ -1,34 +1,63 @@
 """
-memory.py — TF-IDF keyword retrieval memory.
-
-Named "semantic" for historic compatibility; the algorithm is TF-IDF
-cosine similarity (zero external dependencies).
-Back-compat aliases SimpleSemanticRetriever / HierarchicalSemanticMemory preserved.
+memory.py — TF-IDF keyword retrieval memory. Self-contained, zero dependencies.
 """
 from __future__ import annotations
 
 import math
 import re
+import sys
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
-from autourgos_memory import BaseMemory, BaseRetriever, Document, MemoryMessage
-from autourgos_buffer_memory import RuntimeShortTermMemory
+from .base import BaseMemory, BaseRetriever, Document, MemoryMessage
 
 
 def tokenize(text: str) -> List[str]:
-    """Lowercase alphanumeric tokenizer."""
     if not text:
         return []
     return re.findall(r"[a-zA-Z0-9]+", text.lower())
 
 
-class KeywordRetriever(BaseRetriever):
-    """Zero-dependency TF-IDF cosine-similarity retriever.
+# ── Inlined short-term buffer (used as default in KeywordMemory) ───────────────
 
-    IDF weights are computed at query time so scores remain consistent as
-    documents are added incrementally (avoids stale IDF caching).
-    """
+class _RuntimeShortTermMemory(BaseMemory):
+    def __init__(self, max_messages: int = 10) -> None:
+        self.max_messages = max_messages
+        self._messages: List[MemoryMessage] = []
+
+    def add_message(self, role: str, content: str, timestamp: Optional[datetime] = None) -> MemoryMessage:
+        msg = MemoryMessage(role=role, content=content, timestamp=timestamp or datetime.now(timezone.utc))
+        self._messages.append(msg)
+        if len(self._messages) > self.max_messages:
+            self._messages = self._messages[-self.max_messages:]
+        return msg
+
+    def add_user_message(self, content: str) -> MemoryMessage:
+        return self.add_message("user", content)
+
+    def add_agent_message(self, content: str) -> MemoryMessage:
+        return self.add_message("agent", content)
+
+    def add_tool_message(self, tool_name: str, result: str) -> MemoryMessage:
+        return self.add_message("tool", f"[{tool_name} returned]: {result}")
+
+    def get_messages(self) -> List[MemoryMessage]:
+        return list(self._messages)
+
+    def clear(self) -> None:
+        self._messages = []
+
+    def format_for_llm(self, query: Optional[str] = None) -> str:
+        if not self._messages:
+            return ""
+        lines = "\n".join(f"{m.role}: {m.content}" for m in self._messages)
+        return f"\n--- Previous Conversation Context ---\n{lines}\n--------------------------------------\n"
+
+
+# ── KeywordRetriever ───────────────────────────────────────────────────────────
+
+class KeywordRetriever(BaseRetriever):
+    """Zero-dependency TF-IDF cosine-similarity retriever."""
 
     def __init__(self) -> None:
         self.documents: List[Document] = []
@@ -99,22 +128,10 @@ class KeywordRetriever(BaseRetriever):
         return [Document(content=d.content, metadata=d.metadata, score=s, source=d.source) for d, s in scored[:top_k]]
 
 
+# ── KeywordMemory ──────────────────────────────────────────────────────────────
+
 class KeywordMemory(BaseMemory):
-    """Dual-store memory: sliding short-term buffer + TF-IDF keyword retrieval.
-
-    Every message is added to both a short-term ring buffer (shown in full)
-    and the keyword index (used to surface relevant past context when a query
-    is provided to ``format_for_llm``).
-
-    Parameters
-    ----------
-    short_term : BaseMemory, optional
-        Short-term store. Defaults to ``RuntimeShortTermMemory(max_messages=10)``.
-    retriever : BaseRetriever, optional
-        Retriever for past context. Defaults to ``KeywordRetriever()``.
-    top_k : int
-        Max relevant past messages to surface. Default 3.
-    """
+    """Dual-store: sliding short-term buffer + TF-IDF keyword retrieval."""
 
     def __init__(
         self,
@@ -122,7 +139,7 @@ class KeywordMemory(BaseMemory):
         retriever: Optional[BaseRetriever] = None,
         top_k: int = 3,
     ) -> None:
-        self.short_term = short_term or RuntimeShortTermMemory(max_messages=10)
+        self.short_term = short_term or _RuntimeShortTermMemory(max_messages=10)
         self.retriever  = retriever or KeywordRetriever()
         self.top_k      = top_k
 

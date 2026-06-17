@@ -1,24 +1,36 @@
-# Byte-compiled / optimized / DLL files
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
-
-# Distribution / packaging
-build/
-dist/
+*.pyo
+*.pyd
+*.so
+*.egg
 *.egg-info/
+dist/
+build/
+*.dist-info/
+.eggs/
 
-# Unit test / coverage reports
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Virtual environments
+# Virtual envs
 .venv/
 venv/
 env/
 
-# IDE files
+# Tools
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+htmlcov/
+.coverage
+coverage.xml
+
+# Editor
 .vscode/
 .idea/
 *.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db

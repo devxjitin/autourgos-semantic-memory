@@ -15,7 +15,7 @@ try:
     from importlib.metadata import version as _v
     __version__ = _v("autourgos-semantic-memory")
 except Exception:
-    __version__ = "1.0.1"
+    __version__ = "1.0.2"
 
 __all__ = [
     "tokenize",
